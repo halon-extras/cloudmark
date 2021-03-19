@@ -1,0 +1,92 @@
+function cloudmark_as($opts, $senderip, $senderhelo, $sender, $recipients, $fp)
+{
+	$boundary = uuid();
+	$preamble = "";
+
+	foreach ([
+			"heloDomain" => $senderhelo,
+			"mailFrom" => $sender,
+			"rcptTo" => implode(";", $recipients),
+			"connIp" => $senderip
+		] as $k => $v) {
+		$preamble .= implode("\r\n", [
+				"--$boundary",
+				"Content-Disposition: form-data; name=\"$k\"",
+				"",
+				$v])."\r\n";
+	}
+
+	$preamble .= implode("\r\n", [
+			"--".$boundary,
+			"Content-Disposition: form-data; name=\"rfc822\"",
+			"",
+		  ])."\r\n";
+	$postamble = "\r\n--".$boundary."--\r\n";
+	$fp->seek(0, "SEEK_SET");
+	$data = [$preamble, $fp, $postamble];
+
+	$result = http($opts["host"].":".$opts["port"]."/score/v2/message",
+					[
+						"timeout" => number($opts["timeout"] ?? 5),
+						"extended_result" => true,
+						"headers" => ["Content-type: multipart/form-data; boundary=".$boundary, "Connection: close"]
+					], [],
+					function ($size) closure ($data) {
+						while (length($data)) {
+							if (is_string($data[0])) {
+								$x = $data[0][0:$size];
+								$data[0] = $data[0][$size:];
+							} else {
+								$x = $data[0]->read($size);
+							}
+							if ($x !== "")
+								return $x;
+							$data = $data[1:];
+						}
+						return "";
+					});
+
+	if ($result["status"] != 200) {
+		echo "ScanCM() - Error ".$result["status"];
+		return;
+	}
+
+	$content = json_decode($result["content"]);
+	if (!is_array($content))
+		return;
+
+	$score = $content["score"] ?? 0;
+	$analysis = $content["analysis"] ?? "";
+
+	echo "Cloudmark-Score: ".$score;
+	echo "Cloudmark-Analysis: ".$analysis;
+
+	return $score;
+}
+
+function cloudmark_ip($opts, $ip)
+{
+	$result = http($opts["host"].":".$opts["port"]."/score/v2/ip/".$ip,
+				[
+					"timeout" => number($opts["timeout"] ?? 5),
+					"extended_result" => true,
+					"headers" => ["Connection: close"]
+				]);
+
+	if ($result["status"] != 200) {
+		echo "ScanIPCM() - Error ".$result["status"];
+		return;
+	}
+
+	$content = json_decode($result["content"]);
+	if (!is_array($content))
+		return;
+
+	$score = $content["score"] ?? 0;
+	$analysis = $content["analysis"] ?? "";
+
+	echo "Cloudmark-Score: ".$score;
+	echo "Cloudmark-Analysis: ".$analysis;
+
+	return $score;
+}
