@@ -1,5 +1,5 @@
 ## cloudmark_as(options, senderip, senderhelo, sender, recipients, fp)
-Scan a message with Cloudmarks Authority server (using HTTP POST). This function should be used with the [`per_message` cache](http://docs.halon.se/hsl/structures.html#cache).
+Scan a message with Cloudmarks Authority server (using HTTP POST).
 
 **Params**
 
@@ -14,7 +14,7 @@ The following options are available in the **options** array.
 - timeout `number` - Timeout in seconds. The default is 5 seconds.
 
 ## cloudmark_ip(options, senderip)
-Scan an IP with Cloudmarks Authority server (using HTTP POST). This function should be used with the [`per_message` cache](http://docs.halon.se/hsl/structures.html#cache).
+Scan an IP with Cloudmarks Authority server (using HTTP POST).
 
 **Params**
 
